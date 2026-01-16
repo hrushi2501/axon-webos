@@ -1,4 +1,4 @@
-# 🧠 Axon OS: The Intelligent Portfolio
+# 🧠 Axon OS:
 
 > **"Experience the Future of Personal Portfolios."**
 
