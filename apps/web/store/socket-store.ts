@@ -1,136 +1,201 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
-interface SystemStats {
-    cpu_usage: number;
-    memory_usage: number;
-    total_memory: number;
+export interface SystemStats {
+  cpuUsagePercent: number;
+  memoryUsedBytes: number;
+  memoryTotalBytes: number;
+  observedAt: string;
+}
+
+export type MetricsSource = "live" | "simulated" | "unavailable";
+
+interface MetricsEvent {
+  type: "metrics.updated";
+  data: SystemStats;
 }
 
 interface SocketStore {
-    isConnected: boolean;
-    stats: SystemStats | null;
-    connect: () => void;
-    disconnect: () => void;
-    sendMessage: (msg: string) => void;
-    registerTerminalCallback: (cb: (output: string) => void) => void;
-    unregisterTerminalCallback: () => void;
-    sendTerminalCommand: (command: string) => void;
+  isConnected: boolean;
+  stats: SystemStats | null;
+  metricsSource: MetricsSource;
+  connect: () => void;
+  disconnect: () => void;
 }
 
+const INITIAL_RECONNECT_DELAY_MS = 1_000;
+const MAX_RECONNECT_DELAY_MS = 30_000;
+const SIMULATION_INTERVAL_MS = 1_000;
+
+let socket: WebSocket | null = null;
+let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+let simulationTimer: ReturnType<typeof setInterval> | undefined;
+let reconnectAttempt = 0;
+let shouldReconnect = false;
+
+const clearReconnectTimer = () => {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = undefined;
+  }
+};
+
+const clearSimulationTimer = () => {
+  if (simulationTimer) {
+    clearInterval(simulationTimer);
+    simulationTimer = undefined;
+  }
+};
+
+const getWebSocketUrl = (): string => {
+  const configuredUrl = process.env.NEXT_PUBLIC_API_WS_URL?.trim();
+  if (configuredUrl) return configuredUrl;
+
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.hostname}:3001/ws`;
+};
+
+const createSimulatedStats = (): SystemStats => {
+  const memoryTotalBytes = 16 * 1024 * 1024 * 1024;
+
+  return {
+    cpuUsagePercent: Math.round((15 + Math.random() * 30) * 10) / 10,
+    memoryUsedBytes:
+      4 * 1024 * 1024 * 1024 + Math.round(Math.random() * 500 * 1024 * 1024),
+    memoryTotalBytes,
+    observedAt: new Date().toISOString(),
+  };
+};
+
+const parseMetricsEvent = (value: unknown): MetricsEvent | null => {
+  if (!value || typeof value !== "object") return null;
+
+  const event = value as { type?: unknown; data?: unknown };
+  if (
+    event.type !== "metrics.updated" ||
+    !event.data ||
+    typeof event.data !== "object"
+  )
+    return null;
+
+  const data = event.data as Record<string, unknown>;
+  if (
+    typeof data.cpuUsagePercent !== "number" ||
+    typeof data.memoryUsedBytes !== "number" ||
+    typeof data.memoryTotalBytes !== "number" ||
+    typeof data.observedAt !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    type: "metrics.updated",
+    data: {
+      cpuUsagePercent: data.cpuUsagePercent,
+      memoryUsedBytes: data.memoryUsedBytes,
+      memoryTotalBytes: data.memoryTotalBytes,
+      observedAt: data.observedAt,
+    },
+  };
+};
+
 export const useSocketStore = create<SocketStore>((set, get) => {
-    let socket: WebSocket | null = null;
-    let terminalCallback: ((output: string) => void) | null = null;
+  const startSimulation = () => {
+    if (simulationTimer) return;
 
-    return {
+    const publish = () => {
+      set({
         isConnected: false,
-        stats: null,
-
-        connect: () => {
-            if (socket) return;
-
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const host = window.location.hostname;
-            const wsUrl = `${protocol}//${host}:3001/ws`;
-
-            socket = new WebSocket(wsUrl);
-
-            socket.onopen = () => {
-                set({ isConnected: true });
-                console.log('Connected to backend');
-
-                // Clear simulation if it exists
-                const existingInterval = (get() as any).simulationInterval;
-                if (existingInterval) {
-                    clearInterval(existingInterval);
-                    (get() as any).simulationInterval = null;
-                }
-            };
-
-            socket.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.type_ === 'stats') {
-                        set({
-                            stats: {
-                                cpu_usage: data.cpu_usage,
-                                memory_usage: data.memory_usage,
-                                total_memory: data.total_memory
-                            }
-                        });
-                    } else if (data.type_ === 'terminal_output') {
-                        if (terminalCallback) {
-                            terminalCallback(data.output);
-                        }
-                    }
-                } catch (e) {
-                    console.error('Failed to parse message', e);
-                }
-            };
-
-            socket.onerror = (error) => {
-                console.warn('WebSocket error:', error);
-                // Don't close here, let onclose handle the cleanup and reconnection
-            };
-
-            socket.onclose = () => {
-                set({ isConnected: false });
-                socket = null;
-                console.log("WebSocket closed. Switching to simulation mode...");
-
-                // Start simulation if not already running
-                if (!(get() as any).simulationInterval) {
-                    const interval = setInterval(() => {
-                        if (socket && socket.readyState === WebSocket.OPEN) {
-                            clearInterval(interval);
-                            (get() as any).simulationInterval = null;
-                            return;
-                        }
-                        set({
-                            stats: {
-                                cpu_usage: 15 + Math.random() * 30, // 15-45%
-                                memory_usage: 4 * 1024 * 1024 * 1024 + Math.random() * 500 * 1024 * 1024, // ~4GB
-                                total_memory: 16 * 1024 * 1024 * 1024 // 16GB
-                            },
-                            isConnected: false // Keep as false to show UI indicator if desired
-                        });
-                    }, 1000);
-                    (get() as any).simulationInterval = interval;
-                }
-
-                // Exponential backoff or simple retry
-                setTimeout(() => {
-                    console.log("Attempting to reconnect...");
-                    get().connect();
-                }, 3000);
-            };
-
-        },
-
-        disconnect: () => {
-            if (socket) {
-                socket.close();
-                socket = null;
-                set({ isConnected: false });
-            }
-        },
-
-        sendMessage: (msg: string) => {
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(msg);
-            }
-        },
-
-        registerTerminalCallback: (cb: (output: string) => void) => {
-            terminalCallback = cb;
-        },
-
-        unregisterTerminalCallback: () => {
-            terminalCallback = null;
-        },
-
-        sendTerminalCommand: (command: string) => {
-            const { sendMessage } = get();
-            sendMessage(JSON.stringify({ type: 'command', command }));
-        }
+        metricsSource: "simulated",
+        stats: createSimulatedStats(),
+      });
     };
+
+    publish();
+    simulationTimer = setInterval(publish, SIMULATION_INTERVAL_MS);
+  };
+
+  const scheduleReconnect = () => {
+    if (!shouldReconnect || reconnectTimer) return;
+
+    const cappedDelay = Math.min(
+      MAX_RECONNECT_DELAY_MS,
+      INITIAL_RECONNECT_DELAY_MS * 2 ** reconnectAttempt,
+    );
+    const jitter = Math.round(Math.random() * 250);
+    reconnectAttempt += 1;
+
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = undefined;
+      get().connect();
+    }, cappedDelay + jitter);
+  };
+
+  return {
+    isConnected: false,
+    stats: null,
+    metricsSource: "unavailable",
+
+    connect: () => {
+      shouldReconnect = true;
+      if (socket) return;
+
+      clearReconnectTimer();
+
+      let nextSocket: WebSocket;
+      try {
+        nextSocket = new WebSocket(getWebSocketUrl());
+      } catch {
+        startSimulation();
+        scheduleReconnect();
+        return;
+      }
+
+      socket = nextSocket;
+
+      nextSocket.onopen = () => {
+        if (socket !== nextSocket) return;
+
+        reconnectAttempt = 0;
+        clearSimulationTimer();
+        set({ isConnected: true, metricsSource: "live" });
+      };
+
+      nextSocket.onmessage = (event) => {
+        try {
+          const metricsEvent = parseMetricsEvent(JSON.parse(event.data));
+          if (metricsEvent) {
+            set({ stats: metricsEvent.data, metricsSource: "live" });
+          }
+        } catch {
+          // Ignore malformed telemetry instead of corrupting the dashboard state.
+        }
+      };
+
+      nextSocket.onclose = () => {
+        if (socket === nextSocket) {
+          socket = null;
+        }
+
+        set({ isConnected: false });
+
+        if (shouldReconnect) {
+          startSimulation();
+          scheduleReconnect();
+        }
+      };
+    },
+
+    disconnect: () => {
+      shouldReconnect = false;
+      reconnectAttempt = 0;
+      clearReconnectTimer();
+      clearSimulationTimer();
+
+      const currentSocket = socket;
+      socket = null;
+      currentSocket?.close();
+
+      set({ isConnected: false, metricsSource: "unavailable", stats: null });
+    },
+  };
 });

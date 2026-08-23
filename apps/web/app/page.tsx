@@ -17,9 +17,7 @@ export default function Home() {
   }, [accentColor]);
 
   return (
-    <main
-      className="h-screen w-screen overflow-hidden"
-    >
+    <main className="h-screen w-screen overflow-hidden">
       <SoundProvider>
         <Desktop />
         <ContextMenu />

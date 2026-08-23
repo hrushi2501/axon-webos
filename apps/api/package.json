@@ -1,11 +1,35 @@
 {
-    "name": "webos-api",
-    "version": "0.1.0",
-    "private": true,
-    "scripts": {
-        "dev": "cargo run",
-        "build": "cargo build --release",
-        "start": "target/release/webos-api",
-        "lint": "cargo clippy"
-    }
+  "name": "webos-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "clean": "node scripts/clean.mjs",
+    "build": "npm run clean && tsc --project tsconfig.json",
+    "start": "node dist/index.js",
+    "lint": "eslint src test --max-warnings 0",
+    "check-types": "tsc --noEmit --project tsconfig.test.json",
+    "test": "tsx --test test/server.test.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.6.2",
+    "helmet": "^8.3.0",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "ws": "^8.18.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.15.3",
+    "@types/ws": "^8.5.14",
+    "eslint": "^9.39.1",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.2"
+  }
 }

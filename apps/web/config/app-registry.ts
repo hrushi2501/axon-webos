@@ -1,109 +1,117 @@
 import {
-    User,
-    FileText,
-    FolderGit2,
-    Mail,
-    Terminal as TerminalIcon,
-    FolderOpen,
-    Bot,
-    Activity,
-    Settings as SettingsIcon,
+  User,
+  FileText,
+  FolderGit2,
+  Mail,
+  Terminal as TerminalIcon,
+  FolderOpen,
+  Bot,
+  Activity,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import {
-    About,
-    Resume,
-    Projects,
-    Contact,
-    Terminal,
-    FileManager,
-    Copilot,
-    TaskManager,
-    Settings,
-    TextEditor,
+  About,
+  Resume,
+  Projects,
+  Contact,
+  Terminal,
+  FileManager,
+  Copilot,
+  TaskManager,
+  Settings,
+  TextEditor,
 } from "../components/apps/LazyApps";
 import { AppConfig } from "../types/os";
 
 export const APP_REGISTRY: Record<string, AppConfig> = {
-    "text-editor": {
-        id: "text-editor",
-        title: "Text Editor",
-        icon: FileText,
-        component: TextEditor,
-        width: 600,
-        height: 500
-    },
-    "about": {
-        id: "about",
-        title: "About Me",
-        icon: User,
-        component: About,
-        width: 600,
-        height: 600
-    },
-    "resume": {
-        id: "resume",
-        title: "Resume",
-        icon: FileText,
-        component: Resume,
-        width: 800,
-        height: 600
-    },
-    "projects": {
-        id: "projects",
-        title: "Projects",
-        icon: FolderGit2,
-        component: Projects,
-        width: 900,
-        height: 600
-    },
-    "contact": {
-        id: "contact",
-        title: "Contact",
-        icon: Mail,
-        component: Contact,
-        width: 500,
-        height: 600
-    },
-    "terminal": {
-        id: "terminal",
-        title: "Terminal",
-        icon: TerminalIcon,
-        component: Terminal,
-        width: 700,
-        height: 500
-    },
-    "files": {
-        id: "files",
-        title: "Files",
-        icon: FolderOpen,
-        component: FileManager,
-        width: 900,
-        height: 600
-    },
-    "copilot": {
-        id: "copilot",
-        title: "AI Assistant",
-        icon: Bot,
-        component: Copilot,
-        width: 450,
-        height: 700
-    },
-    "task-manager": {
-        id: "task-manager",
-        title: "Task Manager",
-        icon: Activity,
-        component: TaskManager,
-        width: 700,
-        height: 500
-    },
-    "settings": {
-        id: "settings",
-        title: "Settings",
-        icon: SettingsIcon,
-        component: Settings,
-        width: 900,
-        height: 600
-    },
+  "text-editor": {
+    id: "text-editor",
+    title: "Text Editor",
+    icon: FileText,
+    component: TextEditor,
+    width: 600,
+    height: 500,
+  },
+  about: {
+    id: "about",
+    title: "About Me",
+    icon: User,
+    component: About,
+    width: 600,
+    height: 600,
+  },
+  resume: {
+    id: "resume",
+    title: "Resume",
+    icon: FileText,
+    component: Resume,
+    width: 800,
+    height: 600,
+  },
+  projects: {
+    id: "projects",
+    title: "Projects",
+    icon: FolderGit2,
+    component: Projects,
+    width: 900,
+    height: 600,
+  },
+  contact: {
+    id: "contact",
+    title: "Contact",
+    icon: Mail,
+    component: Contact,
+    width: 500,
+    height: 600,
+  },
+  terminal: {
+    id: "terminal",
+    title: "Terminal",
+    icon: TerminalIcon,
+    component: Terminal,
+    width: 700,
+    height: 500,
+  },
+  files: {
+    id: "files",
+    title: "Files",
+    icon: FolderOpen,
+    component: FileManager,
+    width: 900,
+    height: 600,
+  },
+  copilot: {
+    id: "copilot",
+    title: "AI Assistant",
+    icon: Bot,
+    component: Copilot,
+    width: 450,
+    height: 700,
+  },
+  "task-manager": {
+    id: "task-manager",
+    title: "Task Manager",
+    icon: Activity,
+    component: TaskManager,
+    width: 700,
+    height: 500,
+  },
+  settings: {
+    id: "settings",
+    title: "Settings",
+    icon: SettingsIcon,
+    component: Settings,
+    width: 900,
+    height: 600,
+  },
 };
 
-export const PINNED_APPS = ["about", "resume", "projects", "contact", "terminal", "files", "copilot"];
+export const PINNED_APPS = [
+  "about",
+  "resume",
+  "projects",
+  "contact",
+  "terminal",
+  "files",
+  "copilot",
+];

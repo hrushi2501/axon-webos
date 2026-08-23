@@ -1,74 +1,54 @@
-# 🧠 Axon OS:
+# Axon OS
 
-> **"Experience the Future of Personal Portfolios."**
+Axon OS is a browser-based portfolio operating-system simulation. It presents personal work through desktop icons, virtual files, draggable windows, a browser-safe terminal, and an optional AI copilot.
 
-Axon OS is a **Sovereign Stack** operating system running entirely in your browser. It blends high-performance web graphics (WebGPU) with a robust Rust backend and a state-of-the-art AI core to create an immersive, context-aware user experience.
+The project is a TypeScript monorepo built around a Next.js frontend and a Node.js/Express telemetry service. It runs on macOS (including Apple Silicon), Windows, and Linux with Node.js 22 or newer. Rust is not required or used.
 
----
+## What is implemented
 
-## 🌌 Core Features
+- React, Next.js, and TypeScript desktop experience with window management, a Start menu, command palette, settings, and taskbar.
+- In-memory virtual filesystem with file creation, editing, ZIP export, trash/restore, and recursive permanent deletion.
+- Browser-only terminal commands that operate on the virtual filesystem; it never executes commands or reads files on the backend host.
+- Express REST endpoints and a WebSocket stream for server telemetry.
+- Gemini-powered portfolio copilot when a valid Google AI API key is configured.
+- Type checks, ESLint, API tests, Prettier checks, Docker support, and a macOS/Windows/Linux CI matrix.
 
-### 🤖 **Axon Copilot (Powered by Gemini 2.5 Flash)**
-The heart of the OS is the **Axon Copilot**, an intelligent assistant that knows everything about the developer (Hrushi).
-*   **Master Prompt Technology**: A centralized intelligence directive ensures the AI never breaks character and always provides accurate, portfolio-based answers.
-*   **Context Awareness**: The AI "sees" what you see. Open a window, and the AI knows it's there.
-*   **OS Control**: Ask the AI to *"Open the Resume"* or *"Open my Projects"*, and it will control the system for you.
+The Task Manager explicitly labels its data source: live data is **server telemetry**, while the offline state uses **demo telemetry**. It does not claim to measure a visitor's device.
 
-### 🖥️ **Desktop Environment**
-*   **Glassmorphism UI**: A sleek, neon-accented design language that feels premium and futuristic.
-*   **Window Management**: Drag, resize, minimize, and maximize windows just like a native OS.
-*   **Interactive Desktop**: 3D WebGPU backgrounds and dynamic icons.
+## Quick start
 
-### ⚡ **System Features**
-*   **Rust Backend**: A high-performance `axum` server providing real-time system stats (CPU, RAM) via WebSockets.
-*   **Live Terminal**: A ZSH-like shell that executes commands on the backend.
-*   **File System**: A virtual in-memory file system for exploring the OS.
+1. Install [Node.js 22 LTS](https://nodejs.org/) or newer. The repository uses npm.
+2. Run `npm ci` from the repository root.
+3. Create `apps/web/.env.local` from [`apps/web/.env.example`](apps/web/.env.example). A Gemini key is optional; without it, only the Copilot is unavailable.
+4. Optionally create `apps/api/.env` from [`apps/api/.env.example`](apps/api/.env.example) when your frontend is not served from `http://localhost:3000`.
+5. Run `npm run dev`.
 
----
+Open `http://localhost:3000`. The API runs at `http://localhost:3001` and its WebSocket endpoint is `ws://localhost:3001/ws`.
 
-## 🚀 Quick Start
+## Common commands
 
-This monorepo uses **TurboRepo** to launch the entire stack (Next.js Frontend + Rust Backend) with one command.
-
-### Prerequisites
-1.  **Node.js** (v18+)
-2.  **Rust** (Latest Stable) -> [Install Rust](https://rustup.rs/)
-
-### Installation
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Set up Environment Variables
-# Create apps/web/.env.local and add your Gemini API Key:
-echo "GEMINI_API_KEY=your_key_here" > apps/web/.env.local
-
-# 3. Launch the OS
-npm run dev
+```text
+npm run dev            Start the web app and API
+npm run lint           Lint all workspaces
+npm run check-types    Type-check all workspaces
+npm test               Run automated tests
+npm run build          Create production builds
+npm run format:check   Check formatting without editing files
+npm run docker:check   Validate Docker Compose configuration
+npm run docker:up      Build and start the hardened production stack
+npm run docker:down    Stop and remove the local stack
 ```
 
-Visit **[http://localhost:3000](http://localhost:3000)** to enter the system.
-The backend API will run on `ws://localhost:3001`.
+For the easiest consistent setup on macOS Apple Silicon, Windows, or Linux, install
+Docker Desktop, copy `.env.docker.example` to the untracked `.env`, and run
+`npm run docker:up`. The web app binds to `127.0.0.1:3000` and the telemetry API
+to `127.0.0.1:3001` by default.
 
----
+## Repository map
 
-## 📂 Architecture
+- `apps/web` — Next.js portfolio OS and the Gemini chat route.
+- `apps/api` — TypeScript, Node.js, Express, REST, and WebSocket telemetry service.
+- `docs` — architecture, behavior, protocol, security, migration, and deployment documentation.
+- `packages/*` — shared TypeScript, ESLint, and UI packages from the monorepo scaffold.
 
-*   **`apps/web`**: Next.js 15, React 19, TailwindCSS, Framer Motion.
-*   **`apps/api`**: Rust, Axum, Tokio, SystemStat.
-*   **`packages/ui`**: Shared design system and utilities.
-
----
-
-## 🛠️ Troubleshooting
-
-### "Gemini API Key not found"
-Make sure you have an `.env.local` file in `apps/web` with a valid `GEMINI_API_KEY`. You can get one from Google AI Studio.
-
-### "Rust/Cargo not found"
-Ensure Rust is in your system PATH. Try restarting your terminal after installing Rust.
-
----
-
-*Built with ❤️ by Hrushi Bhanvadiya*
+Read the [documentation index](docs/README.md) before extending the project. It records the true current architecture, cross-platform support, and remaining intentional simulations.

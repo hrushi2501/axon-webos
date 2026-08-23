@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-14]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check types
+        run: npm run check-types
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  containers:
+    name: Containers and integration
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Validate Compose and Bake definitions
+        run: |
+          docker compose config --quiet
+          docker buildx bake --print >/dev/null
+
+      - name: Build production images
+        run: docker compose build --pull
+
+      - name: Verify non-root image users
+        run: |
+          test "$(docker image inspect axon-webos-api:local --format '{{.Config.User}}')" = "node:node"
+          test "$(docker image inspect axon-webos-web:local --format '{{.Config.User}}')" = "node:node"
+
+      - name: Scan API image
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          image-ref: axon-webos-api:local
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      - name: Scan web image
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          image-ref: axon-webos-web:local
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      - name: Start hardened stack
+        run: docker compose up --detach --wait --wait-timeout 180
+
+      - name: Smoke-test web and API
+        run: |
+          curl --fail --show-error --silent http://127.0.0.1:3000/api/health
+          curl --fail --show-error --silent http://127.0.0.1:3001/readyz
+          curl --fail --show-error --silent http://127.0.0.1:3000/ >/dev/null
+
+      - name: Show container logs after a failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Stop stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans

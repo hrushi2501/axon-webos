@@ -1,0 +1,94 @@
+name: axon-webos
+
+services:
+  api:
+    image: axon-webos-api:${APP_VERSION:-local}
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      args:
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+        VCS_REF: ${VCS_REF:-unknown}
+        VERSION: ${APP_VERSION:-local}
+    environment:
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      APP_VERSION: ${APP_VERSION:-local}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      MAX_WS_CLIENTS: ${MAX_WS_CLIENTS:-100}
+      NODE_ENV: production
+      PORT: 3001
+      SHUTDOWN_TIMEOUT_MS: ${SHUTDOWN_TIMEOUT_MS:-10000}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${API_PORT:-3001}:3001"
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,uid=1000,gid=1000
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    mem_limit: 256m
+    cpus: 1.0
+    restart: unless-stopped
+    stop_grace_period: 15s
+    networks:
+      - axon
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+
+  web:
+    image: axon-webos-web:${APP_VERSION:-local}
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+        NEXT_PUBLIC_API_WS_URL: ${NEXT_PUBLIC_API_WS_URL:-ws://localhost:3001/ws}
+        VCS_REF: ${VCS_REF:-unknown}
+        VERSION: ${APP_VERSION:-local}
+    environment:
+      APP_VERSION: ${APP_VERSION:-local}
+      CHAT_RATE_LIMIT_MAX: ${CHAT_RATE_LIMIT_MAX:-10}
+      CHAT_RATE_LIMIT_WINDOW_MS: ${CHAT_RATE_LIMIT_WINDOW_MS:-60000}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      GOOGLE_GENERATIVE_AI_API_KEY: ${GOOGLE_GENERATIVE_AI_API_KEY:-}
+      HOSTNAME: 0.0.0.0
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m,uid=1000,gid=1000
+      - /app/apps/web/.next/cache:rw,noexec,nosuid,size=64m,uid=1000,gid=1000
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 200
+    mem_limit: 768m
+    cpus: 2.0
+    restart: unless-stopped
+    stop_grace_period: 20s
+    networks:
+      - axon
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+
+networks:
+  axon:
+    driver: bridge

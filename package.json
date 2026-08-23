@@ -3,10 +3,17 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "docker:build": "docker compose build",
+    "docker:check": "docker compose config --quiet",
+    "docker:down": "docker compose down --remove-orphans",
+    "docker:logs": "docker compose logs --follow",
+    "docker:up": "docker compose up --build --detach --wait",
+    "dev": "turbo run dev --filter=web --filter=webos-api",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "format": "prettier --write \"**/*.{ts,tsx,md,json,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yml,yaml}\"",
+    "check-types": "turbo run check-types",
+    "test": "turbo run test"
   },
   "devDependencies": {
     "prettier": "^3.6.2",
@@ -14,7 +21,7 @@
     "typescript": "5.9.2"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "packageManager": "npm@11.4.2",
   "workspaces": [

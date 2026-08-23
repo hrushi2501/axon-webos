@@ -37,15 +37,3 @@ yarn-error.log*
 .DS_Store
 *.pem
 
-# Rust
-/target/
-**/target/
-Cargo.lock
-*.exe
-*.dll
-*.pdb
-
-
-# Rust build artifacts
-**/target/
-

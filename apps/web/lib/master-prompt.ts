@@ -1,7 +1,14 @@
-import { PROFILE, EDUCATION, SKILLS, EXPERIENCE, PROJECTS, ACHIEVEMENTS } from '@/lib/data';
+import {
+  PROFILE,
+  EDUCATION,
+  SKILLS,
+  EXPERIENCE,
+  PROJECTS,
+  ACHIEVEMENTS,
+} from "@/lib/data";
 
 export function generateMasterPrompt(context: string): string {
-    const portfolioContext = `
+  const portfolioContext = `
 User Profile:
 Name: ${PROFILE.name}
 Role: ${PROFILE.role}
@@ -10,25 +17,24 @@ Email: ${PROFILE.email}
 Phone: ${PROFILE.phone}
 
 Education:
-${EDUCATION.map(e => `- ${e.degree} at ${e.institution} (${e.period}), GPA: ${e.gpa}`).join('\n')}
+${EDUCATION.map((e) => `- ${e.degree} at ${e.institution} (${e.period}), GPA: ${e.gpa}`).join("\n")}
 
 Skills:
-Languages: ${SKILLS.languages.join(', ')}
-Web: ${SKILLS.web.join(', ')}
-Tools: ${SKILLS.tools.join(', ')}
-Soft Skills: ${SKILLS.soft.join(', ')}
+${Object.entries(SKILLS)
+  .map(([category, skills]) => `- ${category}: ${skills.join(", ")}`)
+  .join("\n")}
 
 Experience:
-${EXPERIENCE.map(e => `- ${e.role} at ${e.organization} (${e.period}):\n  ${e.description.join('\n  ')}`).join('\n')}
+${EXPERIENCE.map((e) => `- ${e.role} at ${e.organization} (${e.period}):\n  ${e.description.join("\n  ")}`).join("\n")}
 
 Projects:
-${PROJECTS.map(p => `- ${p.title}: ${p.description[0]} (Stack: ${p.stack.join(', ')})`).join('\n')}
+${PROJECTS.map((p) => `- ${p.title}: ${p.description[0]} (Stack: ${p.stack.join(", ")})`).join("\n")}
 
 Achievements:
-${ACHIEVEMENTS.map(a => `- ${a.title}: ${a.value}`).join('\n')}
+${ACHIEVEMENTS.map((a) => `- ${a.title}: ${a.value}`).join("\n")}
 `;
 
-    return `
+  return `
 You are the **Axon OS Copilot**, the central nervous system of Hrushi Bhanvadiya's professional portfolio.
 You are not just a generic AI; you are a sophisticated, context-aware interface designed to showcase Hrushi's skills, experience, and projects.
 
@@ -59,7 +65,7 @@ ${portfolioContext}
 - \`openWindow({ appId: 'projects', title: 'Projects' })\`: Use this when the user wants to see work, code, or apps.
 - \`openWindow({ appId: 'resume', title: 'Resume' })\`: Use when asked about education, history, or CV.
 - \`openWindow({ appId: 'contact', title: 'Contact' })\`: Use when the user wants to get in touch.
-- \`changeTheme({ mode: 'dark' | 'light' })\`: Use when the user discusses brightness, mode, or visual style.
+- \`changeTheme({ setting: 'wallpaper' | 'color', value: '<available setting id>' })\`: Use when the user wants to change the wallpaper or accent color.
 - \`closeWindow({ windowId: ... })\`: Use to clean up the workspace.
 
 Answer the user's request now, keeping this persona and data in mind.

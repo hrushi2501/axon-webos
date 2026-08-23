@@ -1,72 +1,97 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { useControlCenterStore } from "@/store/control-center-store";
 
 type SoundType = "click" | "open" | "close" | "error" | "startup" | "hover";
 
 interface SoundContextType {
-    playSound: (type: SoundType) => void;
-    volume: number;
-    setVolume: (volume: number) => void;
-    isMuted: boolean;
-    toggleMute: () => void;
+  playSound: (type: SoundType) => void;
+  volume: number;
+  setVolume: (volume: number) => void;
+  isMuted: boolean;
+  toggleMute: () => void;
 }
+
+const SOUND_FREQUENCIES: Record<SoundType, number> = {
+  click: 520,
+  open: 660,
+  close: 330,
+  error: 180,
+  startup: 780,
+  hover: 440,
+};
 
 const SoundContext = createContext<SoundContextType | undefined>(undefined);
 
-import { useControlCenterStore } from "@/store/control-center-store";
-
-// ... (imports)
-
 export const SoundProvider = ({ children }: { children: React.ReactNode }) => {
-    const { volume, setVolume } = useControlCenterStore();
-    const [isMuted, setIsMuted] = useState(false);
-    const [audioElements, setAudioElements] = useState<Record<SoundType, HTMLAudioElement | null>>({
-        click: null,
-        open: null,
-        close: null,
-        error: null,
-        startup: null,
-        hover: null,
-    });
+  const { volume, setVolume } = useControlCenterStore();
+  const [isMuted, setIsMuted] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
-    useEffect(() => {
-        // Initialize audio elements
-        // Note: You need to add these files to public/sounds/
-        setAudioElements({
-            click: new Audio("/sounds/click.mp3"),
-            open: new Audio("/sounds/open.mp3"),
-            close: new Audio("/sounds/close.mp3"),
-            error: new Audio("/sounds/error.mp3"),
-            startup: new Audio("/sounds/startup.mp3"),
-            hover: new Audio("/sounds/hover.mp3"),
-        });
-    }, []);
+  useEffect(
+    () => () => {
+      void audioContextRef.current?.close();
+    },
+    [],
+  );
 
-    const playSound = (type: SoundType) => {
-        if (isMuted) return;
+  const playSound = useCallback(
+    (type: SoundType) => {
+      if (isMuted || volume === 0) return;
 
-        const audio = audioElements[type];
-        if (audio) {
-            audio.volume = volume / 100; // Convert 0-100 to 0-1
-            audio.currentTime = 0;
-            audio.play().catch(e => console.log("Audio play failed:", e));
+      try {
+        const audioContext = audioContextRef.current ?? new AudioContext();
+        audioContextRef.current = audioContext;
+
+        if (audioContext.state === "suspended") {
+          void audioContext.resume();
         }
-    };
 
-    const toggleMute = () => setIsMuted(!isMuted);
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        const now = audioContext.currentTime;
+        const duration = type === "startup" ? 0.18 : 0.06;
 
-    return (
-        <SoundContext.Provider value={{ playSound, volume, setVolume, isMuted, toggleMute }}>
-            {children}
-        </SoundContext.Provider>
-    );
+        oscillator.type = type === "error" ? "sawtooth" : "sine";
+        oscillator.frequency.setValueAtTime(SOUND_FREQUENCIES[type], now);
+        gain.gain.setValueAtTime(Math.max(0.0001, (volume / 100) * 0.08), now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start(now);
+        oscillator.stop(now + duration);
+      } catch {
+        // Audio is non-essential and may be blocked until a browser receives user input.
+      }
+    },
+    [isMuted, volume],
+  );
+
+  const toggleMute = useCallback(() => setIsMuted((muted) => !muted), []);
+
+  return (
+    <SoundContext.Provider
+      value={{ playSound, volume, setVolume, isMuted, toggleMute }}
+    >
+      {children}
+    </SoundContext.Provider>
+  );
 };
 
 export const useSound = () => {
-    const context = useContext(SoundContext);
-    if (context === undefined) {
-        throw new Error("useSound must be used within a SoundProvider");
-    }
-    return context;
+  const context = useContext(SoundContext);
+  if (!context) {
+    throw new Error("useSound must be used within a SoundProvider");
+  }
+
+  return context;
 };
