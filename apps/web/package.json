@@ -32,16 +32,16 @@
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@tailwindcss/postcss": "^4.1.17",
-    "@types/jszip": "^3.4.0",
-    "@types/node": "^22.15.3",
-    "@types/react": "19.2.2",
-    "@types/react-dom": "19.2.2",
+    "@types/jszip": "^3.4.1",
+    "@types/node": "^26.4.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
     "autoprefixer": "^10.4.22",
     "babel-plugin-react-compiler": "^1.0.0",
-    "eslint": "^9.39.1",
+    "eslint": "^10.9.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
     "tsx": "^4.20.6",
-    "typescript": "5.9.2"
+    "typescript": "7.0.2"
   }
 }
