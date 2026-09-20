@@ -16,9 +16,9 @@
     "test": "turbo run test"
   },
   "devDependencies": {
-    "prettier": "^3.6.2",
-    "turbo": "^2.6.1",
-    "typescript": "5.9.2"
+    "prettier": "^3.9.7",
+    "turbo": "^2.10.13",
+    "typescript": "7.0.2"
   },
   "engines": {
     "node": ">=22"
